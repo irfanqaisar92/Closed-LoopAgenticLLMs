@@ -1,4 +1,4 @@
-irfan
+#!/usr/bin/env python3
 r"""
 01_prepare_energyplus_model.py
 
@@ -6,7 +6,7 @@ Prepare the EnergyPlus FCU model for the Closed-LoopAgenticLLMs project.
 
 What this script does
 ---------------------
-1. Reads the source IDF from ``inputs/building`` by default.
+1. Reads the source IDF from the repository root by default.
 
 2. Creates six dedicated ventilation schedule actuators for Rooms 1, 2, 4, 5, 6, 7:
        Experimental Ventilation Fraction Room N
@@ -70,10 +70,9 @@ DEFAULT_PROJECT_DIR = (
     SCRIPT_DIR.parent if SCRIPT_DIR.name.lower() in {"scripts", "tools"} else SCRIPT_DIR
 )
 
-INPUT_SUBDIR = Path("inputs") / "building"
 GENERATED_SUBDIR = Path("generated") / "building"
 
-DEFAULT_INPUT_NAME = "honeycomb_7zone_fcu_control_v4_experimental_people.idf"
+DEFAULT_INPUT_NAME = "honeycomb_7zone_fcu_control_v4_experimental.idf"
 DEFAULT_OUTPUT_NAME = "honeycomb_7zone_fcu_closed_loop_ready.idf"
 DEFAULT_MANIFEST_NAME = "model_prepare_manifest.json"
 
@@ -792,22 +791,33 @@ def resolve_input(path_arg: Optional[Path], project_dir: Path) -> Path:
             raise FileNotFoundError(path)
         return path
 
-    input_dir = project_dir / INPUT_SUBDIR
-    preferred = input_dir / DEFAULT_INPUT_NAME
+    preferred = project_dir / DEFAULT_INPUT_NAME
     if preferred.exists():
         return preferred
 
-    candidates = sorted(input_dir.glob("*.idf"))
+    # Backward-compatible fallback for the earlier source filename used during
+    # development. This allows existing research folders to keep working while
+    # the public repository uses the shorter root-level filename.
+    legacy_preferred = (
+        project_dir / "honeycomb_7zone_fcu_control_v4_experimental_people.idf"
+    )
+    if legacy_preferred.exists():
+        return legacy_preferred
+
+    # The public repository keeps source inputs in the repository root. Search
+    # only that directory so generated/building outputs are never mistaken for
+    # source models.
+    candidates = sorted(project_dir.glob("*.idf"))
     if len(candidates) == 1:
         return candidates[0]
 
     if not candidates:
         raise FileNotFoundError(
-            f"No IDF found in {input_dir}. Expected {preferred.name}"
+            f"No source IDF found in {project_dir}. Expected {preferred.name}"
         )
 
     raise RuntimeError(
-        "Multiple IDF files found in inputs/building and the preferred file name "
+        "Multiple root-level IDF files were found and the preferred source name "
         f"was not found. Use --input explicitly. Candidates: {candidates}"
     )
 
@@ -835,7 +845,10 @@ def main() -> int:
         "--input",
         type=Path,
         default=None,
-        help="Optional source IDF path. The source is never modified.",
+        help=(
+            "Optional source IDF path. By default the source IDF is read from "
+            "the repository root and is never modified."
+        ),
     )
     parser.add_argument(
         "--output",

@@ -43,7 +43,7 @@ window.
 Runtime inputs
 --------------
 1. Measured 5-minute occupancy count:
-       inputs/occupancy/actual_occupancy_count_5min_7day.csv
+       actual_occupancy_count_5min_7day.csv
 
 2. People internal gains:
        EnergyPlus People -> Number of People actuator
@@ -123,10 +123,10 @@ Generated IDF:
     generated/building/honeycomb_7zone_fcu_closed_loop_ready.idf
 
 Weather:
-    inputs/weather/CHN_Hebei.Shijiazhuang.536980_CSWD.epw
+    CHN_Hebei.Shijiazhuang.536980_CSWD.epw
 
 Occupancy:
-    inputs/occupancy/actual_occupancy_count_5min_7day.csv
+    actual_occupancy_count_5min_7day.csv
 
 EnergyPlus installation
 -----------------------
@@ -154,9 +154,10 @@ Outputs
 EnergyPlus target: 24.1
 Python target: 3.9+
 
-The repository root is detected from this script location and can be overridden
-with ``--project``. Default repository paths are portable across operating
-systems and user accounts.
+The script is intended to live in the repository root beside the EPW and
+occupancy CSV. The repository root is therefore detected from this script
+location and can still be overridden with ``--project``. Generated files and
+benchmark results are written below ``generated/`` and ``results/``.
 """
 
 from __future__ import annotations
@@ -189,15 +190,11 @@ import pandas as pd
 SCRIPT_NAME = Path(__file__).name
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# Support the recommended repository layout (script stored in ``scripts/``)
-# while remaining usable if the file is temporarily kept in the repository root.
-DEFAULT_PROJECT_DIR = (
-    SCRIPT_DIR.parent if SCRIPT_DIR.name.lower() in {"scripts", "tools"} else SCRIPT_DIR
-)
+# Final public repository layout: this script and primary input files are kept
+# directly in the repository root.
+DEFAULT_PROJECT_DIR = SCRIPT_DIR
 
 GENERATED_BUILDING_SUBDIR = Path("generated") / "building"
-WEATHER_SUBDIR = Path("inputs") / "weather"
-OCCUPANCY_SUBDIR = Path("inputs") / "occupancy"
 OCCUPANCY_RULE_RESULTS_SUBDIR = Path("results") / "occupancy_rule_baseline"
 FIXED_RESULTS_SUBDIR = Path("results") / "fixed_baseline"
 
@@ -484,7 +481,7 @@ def portable_path(path: Path, project: Path) -> str:
     try:
         return resolved_path.relative_to(resolved_project).as_posix()
     except ValueError:
-        return str(resolved_path)
+        return resolved_path.name
 
 
 def resolve_recorded_path(value: Any, project: Path) -> Optional[Path]:
@@ -4144,12 +4141,12 @@ def main() -> int:
     epw_path = (
         resolve_project_path(args.epw, project)
         if args.epw is not None
-        else (project / WEATHER_SUBDIR / DEFAULT_EPW_NAME).resolve()
+        else (project / DEFAULT_EPW_NAME).resolve()
     )
     occupancy_path = (
         resolve_project_path(args.occupancy, project)
         if args.occupancy is not None
-        else (project / OCCUPANCY_SUBDIR / DEFAULT_OCCUPANCY_NAME).resolve()
+        else (project / DEFAULT_OCCUPANCY_NAME).resolve()
     )
     output_dir = (
         resolve_project_path(args.output_dir, project)
