@@ -32,6 +32,8 @@ The framework is compared with three deterministic reference controllers:
 - Occupancy-based rule control
 - Comfort/RH-based rule control
 
+![Closed-loop agentic HVAC control framework](AgenticControlFrameWork.png)
+
 ---
 
 ## ⚙️ Installation
